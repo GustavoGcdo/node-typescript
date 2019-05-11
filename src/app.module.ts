@@ -6,7 +6,7 @@ import { StoreModule } from './modules/store/store.module';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost:27017/petshop', { useNewUrlParser: true }),
+    MongooseModule.forRoot(process.env.CONNECTION_STRING, { useNewUrlParser: true }),
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: 'localhost',
