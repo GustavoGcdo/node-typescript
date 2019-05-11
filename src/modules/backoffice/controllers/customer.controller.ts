@@ -1,4 +1,5 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Param, Post, Put, UseInterceptors } from '@nestjs/common';
+import { Body, CacheInterceptor, Controller, Get, HttpException, HttpStatus, Param, Post, Put, UseInterceptors } from '@nestjs/common';
+import { Md5 } from 'md5-typescript';
 import { CreateCreditCardContract } from '../contracts/customer/create-credit-card-customer.contract';
 import { CreateCustomerContract } from '../contracts/customer/create-customer.contract';
 import { QueryContract } from '../contracts/query.contract';
@@ -15,65 +16,101 @@ import { CustomerService } from '../services/customer.service';
 
 @Controller('v1/customers')
 export class CustomerController {
+  constructor(
+    private readonly accountService: AccountService,
+    private readonly customerService: CustomerService
+  ) { }
 
-    constructor(
-        private readonly accountService: AccountService,
-        private readonly customerService: CustomerService,
-    ) { }
+  @Post()
+  @UseInterceptors(new ValidatorInterceptor(new CreateCustomerContract()))
+  async post(@Body() model: CreateCustomerDto) {
+    try {
+      const password = await Md5.init(
+        `${model.password}${process.env.SALT_KEY}`
+      );
+      const user = await this.accountService.create(
+        new User(model.document, password, true, ['user'])
+      );
+      const customer = new Customer(
+        model.name,
+        model.document,
+        model.email,
+        [],
+        null,
+        null,
+        null,
+        user
+      );
+      const res = await this.customerService.create(customer);
 
-    @Post()
-    @UseInterceptors(new ValidatorInterceptor(new CreateCustomerContract()))
-    async post(@Body() model: CreateCustomerDto) {
-        try {
-            const user = await this.accountService.create(new User(model.document, model.password, true, ['user']));
-            const customer = new Customer(model.name, model.document, model.email, [], null, null, null, user);
-            const res = await this.customerService.create(customer);
-
-            return new Result('Cliente criado com sucess!', true, res, null);
-        } catch (error) {
-            // Rollback manual
-            throw new HttpException(new Result('Nao foi possivel realizar seu cadastro', false, null, error), HttpStatus.BAD_REQUEST);
-        }
+      return new Result('Cliente criado com sucess!', true, res, null);
+    } catch (error) {
+      // Rollback manual
+      throw new HttpException(
+        new Result(
+          'Nao foi possivel realizar seu cadastro',
+          false,
+          null,
+          error
+        ),
+        HttpStatus.BAD_REQUEST
+      );
     }
+  }
 
-    @Get()
-    async getAll() {
-        const customers = await this.customerService.findAll();
-        return new Result(null, true, customers, null);
-    }
+  @Get()
+  @UseInterceptors(CacheInterceptor)
+  async getAll() {
+    const customers = await this.customerService.findAll();
+    return new Result(null, true, customers, null);
+  }
 
-    @Get(':document')
-    async get(@Param('document') document) {
-        const customer = await this.customerService.find(document);
-        return new Result(null, true, customer, null);
-    }
+  @Get(':document')
+  async get(@Param('document') document) {
+    const customer = await this.customerService.find(document);
+    return new Result(null, true, customer, null);
+  }
 
-    @Post('query')
-    @UseInterceptors(new ValidatorInterceptor(new QueryContract()))
-    async query(@Body() model: QueryDto) {
-        const customers = await this.customerService.query(model);
-        return new Result(null, true, customers, null);
-    }
+  @Post('query')
+  @UseInterceptors(new ValidatorInterceptor(new QueryContract()))
+  async query(@Body() model: QueryDto) {
+    const customers = await this.customerService.query(model);
+    return new Result(null, true, customers, null);
+  }
 
-    @Put(':document')
-    @UseInterceptors(new ValidatorInterceptor(new CreateCustomerContract()))
-    async update(@Param('document') document, @Body() model: UpdateCustomerDto) {
-        try {
-            await this.customerService.update(document, model);
-            return new Result(null, true, model, null);
-        } catch (error) {
-            throw new HttpException(new Result('Nao foi possivel atualizar o cliente', false, null, error), HttpStatus.BAD_REQUEST);
-        }
+  @Put(':document')
+  @UseInterceptors(new ValidatorInterceptor(new CreateCustomerContract()))
+  async update(@Param('document') document, @Body() model: UpdateCustomerDto) {
+    try {
+      await this.customerService.update(document, model);
+      return new Result(null, true, model, null);
+    } catch (error) {
+      throw new HttpException(
+        new Result('Nao foi possivel atualizar o cliente', false, null, error),
+        HttpStatus.BAD_REQUEST
+      );
     }
+  }
 
-    @Post(':document/credit-cards')
-    @UseInterceptors(new ValidatorInterceptor(new CreateCreditCardContract()))
-    async createCreditCard(@Param('document') document, @Body() model: CreditCard) {
-        try {
-            await this.customerService.saveOrUpdateCreditCard(document, model);
-            return new Result(null, true, model, null);
-        } catch (error) {
-            throw new HttpException(new Result('Nao foi possivel criar o cartao de credito', false, null, error), HttpStatus.BAD_REQUEST);
-        }
+  @Post(':document/credit-cards')
+  @UseInterceptors(new ValidatorInterceptor(new CreateCreditCardContract()))
+  async createCreditCard(
+    @Param('document') document,
+    @Body() model: CreditCard
+  ) {
+    try {
+      await this.customerService.saveOrUpdateCreditCard(document, model);
+      return new Result(null, true, model, null);
+    } catch (error) {
+      throw new HttpException(
+        new Result(
+          'Nao foi possivel criar o cartao de credito',
+          false,
+          null,
+          error
+        ),
+        HttpStatus.BAD_REQUEST
+      );
     }
+  }
 }

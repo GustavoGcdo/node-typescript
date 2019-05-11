@@ -13,7 +13,6 @@ export class AccountController {
     constructor(private authService: AuthService, private accountService: AccountService) {
     }
 
-    // TODO: Encriptar senha
     // TODO: Adicionar imagem ao cliente
     // TODO: Envio de E-mail com SendGrid
 

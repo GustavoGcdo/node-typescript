@@ -26,8 +26,12 @@
     "@nestjs/mongoose": "^6.0.0",
     "@nestjs/passport": "^6.0.0",
     "@nestjs/platform-express": "^6.0.0",
+    "@nestjs/swagger": "^3.0.2",
     "@nestjs/typeorm": "^6.0.0",
+    "cache-manager": "^2.9.0",
+    "compression": "^1.7.4",
     "guid-typescript": "^1.0.9",
+    "md5-typescript": "^1.0.5",
     "mongoose": "^5.4.20",
     "mysql": "^2.16.0",
     "passport": "^0.4.0",
@@ -36,6 +40,7 @@
     "reflect-metadata": "^0.1.12",
     "rimraf": "^2.6.2",
     "rxjs": "^6.3.3",
+    "swagger-ui-express": "^4.0.2",
     "typeorm": "^0.2.16"
   },
   "devDependencies": {
